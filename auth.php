@@ -1,4 +1,4 @@
-?php
+<?php
 
 return [
 
@@ -36,9 +36,13 @@ return [
     */
 
     'guards' => [
-        'web' => [
+        'admin' => [
             'driver' => 'session',
             'provider' => 'admins',
+        ],
+        'web' => [
+            'driver' => 'session',
+            'provider' => 'users',
         ],
         
     ],
@@ -62,6 +66,10 @@ return [
 
     'providers' => [
         'admins' => [
+            'driver' => 'eloquent',
+            'model' => env('AUTH_MODEL', App\Models\User::class),
+        ],
+        'users' => [
             'driver' => 'eloquent',
             'model' => env('AUTH_MODEL', App\Models\Admin::class),
         ],

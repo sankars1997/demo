@@ -1,0 +1,97 @@
+<?php
+
+namespace App\Http\Controllers;
+use App\Models\User;
+use Illuminate\Support\Facades\Hash;
+
+use Illuminate\Http\Request;
+
+class Usercontroller extends Controller
+{
+    public function userlogin(){
+        
+        return view ('admin login');
+    }
+
+
+    public function register(Request $request){
+        
+        $request->validate([
+            'empid' => 'required|integer|unique:users,empid',
+            'username' => 'required|string|max:255',
+            'aadharno' => 'required|digits:11|unique:users,aadharno',
+            'designation' => 'required|string|max:255',
+            'email' => 'required|email|unique:users,email',
+            'mobilenumber'  => 'required|digits:10',
+            'password' => 'required|string|min:5',
+        ]);
+    
+        
+        User::create([
+            'empid' => $request->empid,
+            'username' => $request->username,
+            'aadharno' => $request->aadharno,
+            'designation' => $request->designation,
+            'email' => $request->email,
+            'mobilenumber' => $request->mobilenumber,
+             'password' => Hash::make($request->password)
+        ]);
+        return redirect()->route('adduser')->with('message','user added successfully');;
+    }
+
+    public function viewusers(){
+        $users=User::all();
+        
+        return view('adminview.viewusers',compact('users'));
+    }
+
+    public function deleteuser($empid){
+        $user=User::find($empid);
+        //return($id);
+        $user->delete();
+        return redirect()->route('viewusers')->with('message','deleted succesfully');
+    }
+
+    public function updateuser($empid){
+        $user=User::find($empid);
+        //return($id);
+       
+        return view('adminview.updateuser',compact('user'));
+    }
+
+    public function updateusersave(){
+        $empid=request('empid');
+        $user=User::find($empid);
+         $user->update([
+            'empid'=>request('empid'),
+        'username'=>request('username'),
+        'aadharno'=>request('aadharno'),
+        'designation'=>request('designation'),
+        'email'=>request('email'),
+        'mobilenumber'=>request('mobilenumber'),
+        'password'=>Hash::make(request('password')),
+         ]) ;
+         return redirect()->route('viewusers')->with('message','edited succesfully');
+}
+
+public function disableuser(){
+    $empid=request('empid');
+        $user=User::find($empid);
+}
+
+public function userstatus($empid){
+    $user=User::find($empid);
+    //return($id);
+    $user->update([
+        'status' => $user->status == 1 ? 0 : 1
+    ]);
+    return redirect()->route('viewusers')->with('message','status updated succesfully');
+}
+
+public function viewuserdetails($empid){
+    $user=User::find($empid);
+    //return($id);
+   
+    return view('adminview.viewuserdetails',compact('user'));
+}
+}

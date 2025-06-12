@@ -10,7 +10,20 @@ class Usercontroller extends Controller
 {
     public function userlogin(){
         
-        return view ('admin login');
+        return view (' User.userlogin');
+    }
+
+    public function douserlogin(){
+        
+        if (auth()->guard('user')->attempt([
+      'username'=>request('username'),
+      'password'=>request('password')
+        ])){
+              return redirect()->route('search');
+        }
+        else{
+                 return redirect()->route('userlogin')->with('message','login is invalid');
+        }
     }
 
 

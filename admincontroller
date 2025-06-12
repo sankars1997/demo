@@ -1,0 +1,562 @@
+<?php
+
+namespace App\Http\Controllers;
+use Illuminate\Validation\Rule;
+use App\Models\Supplier;
+use App\Models\User;
+use App\Models\District;
+use App\Models\State;
+use App\Models\College;
+use App\Models\Logistic;
+use App\Models\Exam;
+use App\Models\Partner;
+use App\Models\Laptop;
+use App\Models\Supplyorder;
+use Illuminate\Support\Facades\Auth;
+
+use Illuminate\Http\Request;
+
+class Admincontroller extends Controller
+{
+    public function adminlogin(){
+       return view('login');
+    }
+    
+    public function adduser()
+    {
+        // Your logic here
+        return view('adduser'); // for example
+    }
+
+    public function dologin(){
+        
+        if(auth()->attempt([
+      'username'=>request('username'),
+      'password'=>request('password')
+        ])){
+              return redirect()->route('search');
+        }
+        else{
+                 return redirect()->route('login')->with('message','login is invalid');
+        }
+    }
+
+
+    public function adminlogout(Request $request)
+{
+    Auth::logout();
+    $request->session()->invalidate();
+    $request->session()->regenerateToken();
+
+    return redirect('/login');
+}
+
+
+
+
+    
+
+    
+
+    public function search(){
+        if(auth()->check()){
+            return response()
+            ->view('search')
+            ->header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')
+            ->header('Pragma', 'no-cache')
+            ->header('Expires', 'Sat, 01 Jan 2000 00:00:00 GMT');
+        }
+        else{
+            return redirect()->route('login');
+        }
+    }
+
+
+    
+    public function addcollege(){
+        $districts = District::all(); 
+        $states = State::all(); 
+    return view('addcollege', compact('districts', 'states'));
+      }
+      
+      public function registercollege(Request $request){
+
+        $validated = $request->validate([
+            'collegeid'     => 'required|string|max:50|unique:colleges,collegeid',
+            'collegename'   => 'required|string|max:100',
+            'address'       => 'required|string',
+            'state'         => 'required|string',
+            'district'      => 'required|string',
+            'email'         => 'required|email|unique:colleges,email',
+            'mobilenumber'  => 'required|digits:10',
+        ]);
+
+
+        $state = State::find($request->state);
+    $stateName = $state ? $state->States : null;
+
+
+    $district = District::find($request->district);
+    $districtName = $district ? $district->Districts : null;
+
+
+    College::create([
+        'collegeid'     => $request->collegeid,
+        'collegename'   => $request->collegename,
+        'address'       => $request->address,
+        'state'         => $stateName, // ✅ Save state name instead of ID
+        'district'      => $districtName,
+        'email'         => $request->email,
+        'mobilenumber'  => $request->mobilenumber,
+    ]);
+        return redirect()->route('addcollege')->with('message','college added successfully');;
+      }
+
+
+      public function addlogistics(){
+        return view('addlogistics');
+      }
+
+
+      public function registerlogistics(Request $request){
+        
+        $validated = $request->validate([
+            'logistics_id'=> 'required|string|max:50|unique:logistics,logistics_id',
+            'logistics_name'=>'required|string|max:100',
+            'address'       => 'required|string',
+            'email'         => 'required|email|unique:logistics,email',
+            'mobilenumber'  => 'required|digits:10',
+            'gstno'=>'required|regex:/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/'
+        ]);
+
+
+
+        Logistic::create([
+            'logistics_id' => $request->logistics_id,
+            'logistics_name' => $request->logistics_name,
+            'address' => $request->address,
+            'email' => $request->email,
+            'mobilenumber' => $request->mobilenumber,
+            'gstno' => $request->gstno,
+            
+        ]);
+        return redirect()->route('addlogistics')->with('message','logistitics added successfully');;
+      }
+
+      public function addexams(){
+        return view('addexam');
+      }
+
+      public function registerexam(Request $request){
+        $validated = $request->validate([
+            'exams_id'=> 'required|string|max:50|unique:exams,exams_id',
+            'exams_name'=>'required|string|max:100',
+            
+        ]);
+        Exam::create([
+            'exams_id' => $request->exams_id,
+            'exams_name' => $request->exams_name,
+            
+            
+        ]);
+        return redirect()->route('addexams')->with('message','exam added successfully');; 
+      }
+      public function addpartners(){
+        return view('addpartners');
+      }
+
+      public function registerpartners(Request $request){
+        
+
+        $validated = $request->validate([
+            'partner_id'=> 'required|string|max:50|unique:partners,partner_id',
+            'partner_name'=>'required|string|max:100',
+            'address'       => 'required|string',
+            'email'         => 'required|email|unique:partners,email',
+            'mobilenumber'  => 'required|digits:10',
+            
+        ]);
+
+        Partner::create([
+              
+            'partner_id'=>$request->partner_id,
+            'partner_name'=>$request->partner_name,
+             'address' => $request->address,
+            'email' => $request->email,
+            'mobilenumber' => $request->mobilenumber,
+
+        ]);
+        return redirect()->route('addpartners')->with('message','partner  added successfully');; 
+      }
+
+
+      public function viewpartners(){
+        $partners=Partner::all();
+        return view ('adminview.viewpartners',compact('partners'));
+    }
+
+
+    public function deletepartners($partner_id){
+        $partners=Partner::find($partner_id);
+        $partners->delete();
+        return redirect()->route('viewpartners')->with('message','deleted succesfully');
+    }
+
+    public function updatepartners($partner_id){
+        $partners=Partner::find($partner_id);
+        //return($id);
+       
+        return view('adminview.updatepartners',compact('partners'));
+    }
+
+
+    public function updatepartnerssave(Request $request){
+
+
+        $request->validate([
+            'partner_id'    => 'required|exists:partners,partner_id',
+            'partner_name'  => 'required|string|max:255',
+            'address'        => 'required|string',
+            'email'          => 'required|email',
+            'mobilenumber'   => 'required|string|max:20',
+            
+        ]);
+
+        $partner_id=request('partner_id');
+        $partner=Partner::find($partner_id);
+         $partner->update([
+            'partner_id'=>request('partner_id'),
+        'partner_name'=>request('partner_name'),
+        'address'=>request('address'),
+        'email'=>request('email'),
+        'mobilenumber'=>request('mobilenumber'),
+        
+        
+         ]) ;
+       
+         return redirect()->route('viewpartners')->with('message','edited succesfully');
+    }
+    
+
+    public function viewpartnerdetails($partner_id){
+        $partners=Partner::find($partner_id);
+        //return($id);
+       
+        return view('adminview.viewpartnerdetails',compact('partners'));
+    }
+
+      public function addsupplier(){
+        
+        return view ('addsupplier');
+    }
+
+    public function registersupplier(Request $request){
+       
+        $validated = $request->validate([
+            'supplier_id'=> 'required|string|max:50|unique:suppliers,supplier_id',
+            'supplier_name'=>'required|string|max:100',
+            'address'       => 'required|string',
+            'email'         => 'required|email|unique:suppliers,email',
+            'mobilenumber'  => 'required|digits:10',
+            'gstno'=>'required|regex:/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/'
+        ]);
+
+
+        Supplier::create([
+            'supplier_id' => $request->supplier_id,
+            'supplier_name' => $request->supplier_name,
+            'address' => $request->address,
+            'email' => $request->email,
+            'mobilenumber' => $request->mobilenumber,
+            'gstno' => $request->gstno,
+            
+        ]);
+        return redirect()->route('addsupplier')->with('message','supplier added successfully');;
+
+    }
+
+    public function viewsupplier(){
+        $suppliers=Supplier::all();
+        //return($id);
+       
+        return view('adminview.viewsupplier',compact('suppliers'));
+    }
+
+    public function updatesupplier($supplier_id){
+        $suppliers=Supplier::find($supplier_id);
+        //return($id);
+       
+        return view('adminview.updatesupplier',compact('suppliers'));
+    }
+
+    public function updatesuppliersave(Request $request){
+
+
+        $request->validate([
+            'supplier_id'    => 'required|exists:suppliers,supplier_id',
+            'supplier_name'  => 'required|string|max:255',
+            'address'        => 'required|string',
+            'email'          => 'required|email',
+            'mobilenumber'   => 'required|string|max:20',
+            'gstno'          => 'nullable|string|max:20',
+        ]);
+
+        $supplier_id=request('supplier_id');
+        $supplier=Supplier::find($supplier_id);
+         $supplier->update([
+            'supplier_id'=>request('supplier_id'),
+        'supplier_name'=>request('supplier_name'),
+        'address'=>request('address'),
+        'email'=>request('email'),
+        'mobilenumber'=>request('mobilenumber'),
+        
+        
+         ]) ;
+       
+         return redirect()->route('viewsupplier')->with('message','edited succesfully');
+    }
+
+    public function deletesupplier($supplier_id){
+       
+        $suppliers=Supplier::find($supplier_id);
+        //return($id);
+        $suppliers->delete();
+        return redirect()->route('viewsupplier')->with('message','deleted succesfully');
+        
+    }
+
+
+    public function viewsupplierdetails($supplier_id){
+        $suppliers=Supplier::find($supplier_id);
+        //return($id);
+       
+        return view('adminview.viewsupplierdetails',compact('suppliers'));
+    }
+
+    public function viewlogistics(){
+        $logistics=Logistic::all();
+        //return($id);
+       
+        return view('adminview.viewlogistics',compact('logistics'));
+    }
+
+    public function deletelogistics($logistics_id){
+        $logistics=Logistic::find($logistics_id);
+        $logistics->delete();
+        return redirect()->route('viewlogistics')->with('message','deleted succesfully');
+        
+    }
+
+
+
+
+    public function updatelogistics($logistics_id){
+        $logistics=Logistic::find($logistics_id);
+        //return($id);
+       
+        return view('adminview.updatelogistics',compact('logistics'));
+    } 
+    
+
+
+    public function updatelogisticssave(Request $request){
+
+
+       
+
+        $logistics_id=request('logistics_id');
+        $logistics=Logistic::find($logistics_id);
+         $logistics->update([
+            'logistics_id'=>request('logistics_id'),
+        'logistics_name'=>request('logistics_name'),
+        'address'=>request('address'),
+        'email'=>request('email'),
+        'mobilenumber'=>request('mobilenumber'),
+        'gstno'=>request('gstno'),
+        
+         ]) ;
+       
+         return redirect()->route('viewlogistics')->with('message','edited succesfully');
+    }
+
+
+
+    public function viewlogisticsdetails($logistics_id){
+        $logistics=Logistic::find($logistics_id);
+        //return($id);
+       
+        return view('adminview.viewlogisticsdetails',compact('logistics'));
+    }
+
+
+    public function viewcollege(){
+        $colleges=College::all();
+        //return($id);
+       
+        return view('adminview.viewcollege',compact('colleges'));
+    }
+
+
+    public function deletecolleges($collegeid){
+        $colleges=College::find($collegeid);
+        $colleges->delete();
+        return redirect()->route('viewcollege')->with('message','deleted succesfully');
+        
+    }
+    
+
+    public function updatecolleges($collegeid){
+        $colleges=College::find($collegeid);
+        //return($id);
+       
+        return view('adminview.updatecollege',compact('colleges'));
+    } 
+
+
+
+    public function updatecollegessave($collegeid){
+        $colleges=College::find($collegeid);
+        
+        $colleges->update([
+            'collegeid'=>request('collegeid'),
+        'collegename'=>request('collegename'),
+        'address'=>request('address'),
+        'state'=>request('state'),
+        'district'=>request('district'),
+        'email'=>request('email'),
+        'mobilenumber'=>request('mobilenumber'),
+        
+        
+         ]) ;
+        return redirect()->route('viewcollege')->with('message','deleted succesfully');
+    } 
+    public function viewcollegedetails($collegeid){
+        $colleges=College::find($collegeid);
+        //return($id);
+       
+        return view('adminview.viewcollegedetails',compact('colleges'));
+    }
+
+    
+
+
+
+    public function addsupplyorders(){
+        $suppliers=Supplier::all();
+        return view('addsupplyorders',compact('suppliers'));
+    }
+
+    public function registersupplyorders(Request $request){
+       
+        
+
+
+        Supplyorder::create([
+            'supplier_id' => $request->supplier_id,
+            'supplier_name' => $request->supplier_name,
+            'laptop_required' => $request->laptop_required,
+            'supplyorder_date' => $request->supplyorder_date,
+            'laptop_type' => $request->laptop_type,
+            
+            
+        ]);
+        return redirect()->route('addsupplyorders')->with('message','order added successfully');;
+
+    }
+
+    public function viewsupplyorders(){
+        $supplyorders=Supplyorder::all();
+        return view("adminview.viewsupplyorders",compact('supplyorders'));
+    }
+
+    public function deletesupplyorders($supplyorder_id){
+        $supplyorders=Supplyorder::find($supplyorder_id);
+        $supplyorders->delete();
+        return redirect()->route('viewsupplyorders')->with('message','deleted succesfully');
+    }
+
+
+    public function updatesupplyorders($supplyorder_id){
+        $supplyorders=Supplyorder::find($supplyorder_id);
+        
+        return view("adminview.updatesupplyorders",compact('supplyorders'));
+    }
+
+
+    public function updatesupplyordersave(Request $request){
+        $supplyorder_id=request('supplyorder_id');
+        $supplyorders=Supplyorder::find($supplyorder_id);
+        
+        $supplyorders->update([
+            'supplyorder_id'=>request('supplyorder_id'),
+            'supplier_id'=>request('supplier_id'),
+        'supplier_name'=>request('supplier_name'),
+        'laptop_required'=>request('laptop_required'),
+        'supplyorder_date'=>request('supplyorder_date'),
+        'laptop_type'=>request('laptop_type'),
+        
+        
+        
+         ]) ;
+        return redirect()->route('viewsupplyorders')->with('message','updated succesfully');
+    } 
+
+
+
+    public function addlaptop(Request $request){
+        $supplyorder_id=request('supplyorder_id');
+        $supplyorders=Supplyorder::find($supplyorder_id);
+        
+        return view("addlaptop",compact('supplyorders'));
+    }
+
+    public function registerlaptop(Request $request){
+        
+        $request->validate([
+            'laptopserialno' => [
+                'required',
+                Rule::unique('laptops')->where(function ($query) use ($request) {
+                    return $query->where('supplier_id', $request->supplier_id);
+                }),
+            ],
+            'supplier_id'    => 'required|exists:suppliers,supplier_id',
+            
+        ]);
+        
+        Laptop::create([
+            'laptopserialno' => $request->laptopserialno,
+              'laptop_spec' => $request->laptop_spec,
+            'supplier_id' => $request->supplier_id,
+            'supplyorder_id' => $request->supplyorder_id,
+            'empid' => $request->empid,
+            'added_date' => $request->added_date,
+            'laptop_type' => $request->laptop_type,
+            
+        ]);
+
+        $supplyorder = Supplyorder::find($request->supplyorder_id);
+
+        if ($supplyorder) {
+            if ($supplyorder->laptop_added < $supplyorder->laptop_required) {
+                $supplyorder->increment('laptop_added');
+                return redirect()->route('viewsupplyorders')->with('js_alert','laptop added successfully');
+            } else {
+                return redirect()->route('viewsupplyorders')->with('js_alert', 'Cannot add more laptops. Limit reached.');
+            }
+        }
+        
+
+        return redirect()->route('viewsupplyorders')->with('message','laptop added successfully');;
+    }
+
+
+    public function viewlaptops(){
+        $laptops=Laptop::all();
+        return view('adminview.viewlaptops',compact('laptops'));
+    }
+
+    public function viewexams(){
+        $exams=Exam::all();
+        return view('adminview.viewexams',compact('exams'));
+    }
+}
